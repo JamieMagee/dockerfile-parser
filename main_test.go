@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"dockerfile-parser/dockerfile"
 	"fmt"
 	"os"
 	"path"
@@ -12,24 +12,42 @@ import (
 func TestParseBaseImages(t *testing.T) {
 	var tests = []struct {
 		file string
-		want []BaseImage
+		want []dockerfile.BaseImage
 	}{
 		{
 			file: "Dockerfile",
-			want: []BaseImage{
+			want: []dockerfile.BaseImage{
 				{
 					Registry: "docker.io",
 					Image:    "library/ubuntu",
-					Stage:    0,
+					Tag:      "latest",
+				},
+			},
+		},
+		{
+			file: "Dockerfile.2",
+			want: []dockerfile.BaseImage{
+				{
+					Registry: "mcr.microsoft.com",
+					Image:    "dotnet/sdk",
+					Tag:      "6.0",
+				},
+				{
+					Image: "scratch",
+				},
+				{
+					Registry: "mcr.microsoft.com",
+					Image:    "dotnet/sdk",
+					Tag:      "6.0",
 				},
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		reader := loadTestFile(tt.file)
+		df := loadTestFile(tt.file)
 		t.Run(fmt.Sprintf("%v", tt.file), func(t *testing.T) {
-			result := parseBaseImages(reader)
+			result, _ := df.FindImages()
 			if !reflect.DeepEqual(tt.want, result) {
 				t.Errorf("expected %v, got %v", tt.want, result)
 			}
@@ -38,8 +56,7 @@ func TestParseBaseImages(t *testing.T) {
 
 }
 
-func loadTestFile(file string) *bytes.Reader {
+func loadTestFile(file string) dockerfile.Dockerfile {
 	dat, _ := os.ReadFile(path.Join("fixtures", file))
-	reader := bytes.NewReader(dat)
-	return reader
+	return dockerfile.Dockerfile(dat)
 }
